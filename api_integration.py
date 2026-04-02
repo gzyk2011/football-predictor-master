@@ -237,6 +237,7 @@ LEAGUES = {
     "Australia A-League": {"api_football_id": 188, "football_data_code": None},
     "Austrian Bundesliga": {"api_football_id": 218, "football_data_code": None},
     "Greek Super League": {"api_football_id": 197, "football_data_code": None},
+    "Chinese Super League": {"api_football_id": 169, "football_data_code": None},
 }
 
 def get_available_leagues() -> List[str]:
@@ -776,14 +777,14 @@ class APIFootball:
             games_played=gp,
         )
 
-    # ── 实时赔率 (新增) ─────────────────────────────────────────────────────────
+    # ── 实时赔率 (升级修复版) ─────────────────────────────────────────────────────────
 
     def get_match_odds(self, league_id: int, home_name: str, away_name: str, season: int = 2025) -> Tuple[float, float, float]:
         """获取赛事的实时赔率 (胜平负)"""
-        # 1. 先从未来赛程中找到这场比赛的专属 fixture_id (复用缓存，不浪费额度)
+        # 1. 先从未来赛程中找到这场比赛的专属 fixture_id (去掉 season 限制，直接查询该联赛未来的50场比赛)
         fixtures_data = self._make_request(
             "fixtures",
-            {"league": league_id, "season": season, "next": 50},
+            {"league": league_id, "next": 50},
             cache_ttl=ResponseCache.TTL_FIXTURES,
         )
 
@@ -799,10 +800,10 @@ class APIFootball:
         if not fixture_id:
             return (0.0, 0.0, 0.0)
 
-        # 2. 用 fixture_id 请求赔率接口 (bookmaker=8 代表业界权威 Bet365)
+        # 2. 用 fixture_id 请求赔率接口 (去掉只查博彩公司 Bet365 的限制，允许抓取全部庄家)
         odds_data = self._make_request(
             "odds",
-            {"fixture": fixture_id, "bookmaker": 8},
+            {"fixture": fixture_id},
             cache_ttl=ResponseCache.TTL_ODDS, # 缓存15分钟
         )
 
@@ -810,22 +811,24 @@ class APIFootball:
             return (0.0, 0.0, 0.0)
 
         try:
-            # 3. 解析 Match Winner (1X2) 赔率并转换为系统需要的概率
-            bets = odds_data["response"][0]["bookmakers"][0]["bets"]
-            for bet in bets:
-                if bet["id"] == 1 or bet["name"] == "Match Winner":
-                    home_odd = draw_odd = away_odd = 0.0
-                    for val in bet["values"]:
-                        v = str(val["value"]).lower()
-                        if v == "home" or "1" in v:
-                            home_odd = float(val["odd"])
-                        elif v == "draw" or "x" in v:
-                            draw_odd = float(val["odd"])
-                        elif v == "away" or "2" in v:
-                            away_odd = float(val["odd"])
-                    
-                    if home_odd and draw_odd and away_odd:
-                        return DataProcessor.odds_to_implied_probabilities(home_odd, draw_odd, away_odd)
+            # 3. 智能遍历所有开盘的博彩公司，只要找到一家有 "Match Winner" (胜平负) 盘口的就直接用
+            bookmakers = odds_data["response"][0].get("bookmakers", [])
+            for bookmaker in bookmakers:
+                bets = bookmaker.get("bets", [])
+                for bet in bets:
+                    if bet["id"] == 1 or bet["name"] == "Match Winner":
+                        home_odd = draw_odd = away_odd = 0.0
+                        for val in bet["values"]:
+                            v = str(val["value"]).lower()
+                            if v == "home" or "1" in v:
+                                home_odd = float(val["odd"])
+                            elif v == "draw" or "x" in v:
+                                draw_odd = float(val["odd"])
+                            elif v == "away" or "2" in v:
+                                away_odd = float(val["odd"])
+                        
+                        if home_odd and draw_odd and away_odd:
+                            return DataProcessor.odds_to_implied_probabilities(home_odd, draw_odd, away_odd)
         except (IndexError, KeyError, ValueError):
             pass
 
@@ -951,6 +954,7 @@ class OddsAPI:
         "Australia A-League": "soccer_australia_aleague",
         "MLS": "soccer_usa_mls",
         "Brasileirao": "soccer_brazil_campeonato",
+        "Chinese Super League": "soccer_china_superleague",
     }
 
     def __init__(self, api_key: str = ODDS_API_KEY):
