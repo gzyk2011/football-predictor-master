@@ -178,8 +178,7 @@ FALLBACK_TEAMS = {
 # ═══════════════════════════════════════════════════════════════════════════════
 # LIVE DATA PROVIDER
 # ═══════════════════════════════════════════════════════════════════════════════
-
-  class LiveDataProvider:
+class LiveDataProvider:
     """Fetches real data from APIs and converts to TeamStats."""
 
     def __init__(self, league_name: str = "Spain La Liga"):
