@@ -204,7 +204,7 @@ LEAGUES = {
     "England Premier League": {"api_football_id": 39, "football_data_code": "PL"},
     "Serie A": {"api_football_id": 135, "football_data_code": "SA"},
     "Bundesliga": {"api_football_id": 78, "football_data_code": "BL1"},
-    "2. Bundesliga": {"api_football_id": 79, "football_data_code": "None"},
+    "Bundesliga .2": {"api_football_id": 79, "football_data_code": "None"},
     "France Ligue 1": {"api_football_id": 61, "football_data_code": "FL1"},
     "France Ligue 2": {"api_football_id": 62, "football_data_code": "FL2"},
     "Champions League": {"api_football_id": 2, "football_data_code": "CL"},
