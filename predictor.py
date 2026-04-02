@@ -376,15 +376,25 @@ class LiveDataProvider:
             return {}
         return self.api.get_head_to_head(id1, id2)
 
-    def get_match_odds(self, home: str, away: str) -> Tuple[float, float, float]:
+def get_match_odds(self, home: str, away: str) -> Tuple[float, float, float]:
+        # 【首选】：尝试从 API-Football 获取实时赔率 (消耗你的 7500次套餐)
+        if self.api.is_available():
+            api_fb_odds = self.api.get_match_odds(self.league_id, home, away)
+            if sum(api_fb_odds) > 0.01:
+                return api_fb_odds
+
+        # 【备用】：如果主 API 没查到这场比赛的赔率，再退而求其次用 OddsAPI (节省 500次额度)
         if not self.odds.is_available():
             return (0, 0, 0)
+        
         sport_key = OddsAPI.SPORT_KEYS.get(self.league_name)
         if not sport_key:
             return (0, 0, 0)
+            
         data = self.odds.get_match_odds(home, away, sport_key)
         if not data:
             return (0, 0, 0)
+            
         return DataProcessor.odds_to_implied_probabilities(
             data["home_odds"], data["draw_odds"], data["away_odds"]
         )
