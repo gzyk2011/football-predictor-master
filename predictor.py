@@ -2,14 +2,14 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                        FOOTBALL MATCH PREDICTOR                              ║
-║                    Professional Betting Analysis Tool                        ║
+║              Professional Betting Analysis Tool                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 Uses Dixon-Coles model with live API data, H2H adjustment, odds calibration,
 recency-weighted form, and backtesting.
 
 Usage:
-    python predictor.py                              # Interactive mode
+    python predictor.py                                # Interactive mode
     python predictor.py --match "Team1 vs Team2"
     python predictor.py --league "Premier League"
     python predictor.py --fixtures
@@ -376,7 +376,7 @@ class LiveDataProvider:
             return {}
         return self.api.get_head_to_head(id1, id2)
 
-def get_match_odds(self, home: str, away: str) -> Tuple[float, float, float]:
+    def get_match_odds(self, home: str, away: str) -> Tuple[float, float, float]:
         # 【首选】：尝试从 API-Football 获取实时赔率 (消耗你的 7500次套餐)
         if self.api.is_available():
             api_fb_odds = self.api.get_match_odds(self.league_id, home, away)
