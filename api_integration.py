@@ -232,7 +232,8 @@ def get_available_leagues() -> List[str]:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class ResponseCache:
-    CACHE_FILE = Path.home() / ".football_predictor_cache"
+    # 【修复点】修改缓存文件名，强制清除你云服务器上的旧错误数据
+    CACHE_FILE = Path.home() / ".football_predictor_cache_v5"
 
     TTL_STANDINGS = 3600      # 1 hour
     TTL_FIXTURES = 1800       # 30 min
@@ -426,15 +427,14 @@ class APIFootball:
     def __init__(self, api_key: str = API_FOOTBALL_KEY):
         self.api_key = api_key
         self.headers = {"x-apisports-key": api_key}
-        self._active_seasons = {} # 记录每个联赛当前正确的年份
+        self._active_seasons = {}
 
     def is_available(self) -> bool:
         return self.api_key not in ("YOUR_API_KEY_HERE", "", None)
 
     def _make_request(self, endpoint: str, params: dict = None, cache_ttl: int = 0) -> dict:
         if cache_ttl > 0:
-            # 【修复点】：使用 apifb_v3 作为前缀，彻底粉碎旧版本的错误缓存
-            key = _cache.make_key(f"apifb_v3/{endpoint}", params)
+            key = _cache.make_key(f"apifb/{endpoint}", params)
             cached = _cache.get(key, cache_ttl)
             if cached is not None:
                 return cached
@@ -452,17 +452,14 @@ class APIFootball:
             return {}
 
     def get_active_season(self, league_id: int) -> int:
-        """【新增核心组件】：AI 赛季嗅探器，自动判断跨年联赛正确的年份，防止主引擎失效"""
         if league_id in self._active_seasons:
             return self._active_seasons[league_id]
 
         current_year = datetime.now().year
-        # 尝试查询当前年份和上一年份（比如现在是 2026，查 2026、2025、2024）
         for season in [current_year, current_year - 1, current_year - 2]:
             data = self._make_request("standings", {"league": league_id, "season": season}, cache_ttl=ResponseCache.TTL_STANDINGS)
             if data.get("response"):
                 self._active_seasons[league_id] = season
-                print(f"  [Season Detected] League {league_id} is currently in season {season}")
                 return season
         return current_year
 
@@ -480,45 +477,51 @@ class APIFootball:
         seen_team_ids = set() # 用来防重
 
         if data.get("response"):
-            # 【修复点】：遍历全部的分组，解决阿根廷、美职联球队减半的问题
-            all_groups = data["response"][0]["league"]["standings"]
-            
-            for group_standings in all_groups:
-                for td in group_standings:
-                    team = td["team"]
-                    team_id = team["id"]
+            # 【修复点】：遍历所有阶段（如第一阶段、第二阶段）
+            for resp_item in data["response"]:
+                if "league" not in resp_item or "standings" not in resp_item["league"]:
+                    continue
                     
-                    if team_id in seen_team_ids:
-                        continue
-                    seen_team_ids.add(team_id)
+                all_groups = resp_item["league"]["standings"]
+                
+                # 【修复点】：遍历所有分组（如 A组、B组、总榜）
+                for group_standings in all_groups:
+                    for td in group_standings:
+                        team = td["team"]
+                        team_id = team["id"]
+                        
+                        # 防止同一支球队在多个阶段/分组中被重复添加
+                        if team_id in seen_team_ids:
+                            continue
+                        seen_team_ids.add(team_id)
 
-                    a = td["all"]
-                    h = td["home"]
-                    w = td["away"]
-                    teams.append(TeamData(
-                        id=team["id"],
-                        name=normalize_team_name(team["name"]),
-                        logo=team.get("logo", ""),
-                        games_played=a["played"],
-                        wins=a["win"],
-                        draws=a["draw"],
-                        losses=a["lose"],
-                        goals_for=a["goals"]["for"],
-                        goals_against=a["goals"]["against"],
-                        home_wins=h["win"],
-                        home_draws=h["draw"],
-                        home_losses=h["lose"],
-                        home_goals_for=h["goals"]["for"],
-                        home_goals_against=h["goals"]["against"],
-                        away_wins=w["win"],
-                        away_draws=w["draw"],
-                        away_losses=w["lose"],
-                        away_goals_for=w["goals"]["for"],
-                        away_goals_against=w["goals"]["against"],
-                        form=td.get("form", ""),
-                        clean_sheets=0,
-                        failed_to_score=0,
-                    ))
+                        a = td["all"]
+                        h = td["home"]
+                        w = td["away"]
+                        teams.append(TeamData(
+                            id=team["id"],
+                            name=normalize_team_name(team["name"]),
+                            logo=team.get("logo", ""),
+                            games_played=a["played"],
+                            wins=a["win"],
+                            draws=a["draw"],
+                            losses=a["lose"],
+                            goals_for=a["goals"]["for"],
+                            goals_against=a["goals"]["against"],
+                            home_wins=h["win"],
+                            home_draws=h["draw"],
+                            home_losses=h["lose"],
+                            home_goals_for=h["goals"]["for"],
+                            home_goals_against=h["goals"]["against"],
+                            away_wins=w["win"],
+                            away_draws=w["draw"],
+                            away_losses=w["lose"],
+                            away_goals_for=w["goals"]["for"],
+                            away_goals_against=w["goals"]["against"],
+                            form=td.get("form", ""),
+                            clean_sheets=0,
+                            failed_to_score=0,
+                        ))
         return teams
 
     def get_fixtures(self, league_id: int, next_n: int = 10) -> List[FixtureData]:
@@ -727,11 +730,7 @@ class APIFootball:
             games_played=gp,
         )
 
-    # ── 实时赔率 (终极修复版：精准ID匹配，不限赛季，不限庄家) ───────────────────────
-
     def get_match_odds(self, league_id: int, home_id: int, away_id: int) -> Tuple[float, float, float]:
-        """获取赛事的实时赔率 (胜平负)，使用真实 ID 精确匹配"""
-        # 1. 扫描未来50场，使用官方 ID 查找
         fixtures_data = self._make_request(
             "fixtures",
             {"league": league_id, "next": 50},
@@ -748,7 +747,6 @@ class APIFootball:
         if not fixture_id:
             return (0.0, 0.0, 0.0)
 
-        # 2. 拉取所有庄家赔率
         odds_data = self._make_request(
             "odds",
             {"fixture": fixture_id},
@@ -759,7 +757,6 @@ class APIFootball:
             return (0.0, 0.0, 0.0)
 
         try:
-            # 3. 智能抓取第一家提供胜平负的庄家
             bookmakers = odds_data["response"][0].get("bookmakers", [])
             for bookmaker in bookmakers:
                 bets = bookmaker.get("bets", [])
@@ -933,18 +930,25 @@ class OddsAPI:
         all_odds = self.get_odds(sport)
 
         for match in all_odds:
-            if (home_team.lower() in match["home_team"].lower() and
-                    away_team.lower() in match["away_team"].lower()):
+            # 加入 normalize_team_name 强制纠错，处理缩写不对齐的问题
+            odds_home = normalize_team_name(match["home_team"])
+            odds_away = normalize_team_name(match["away_team"])
+            
+            # 使用双向模糊包含匹配，最大限度防止漏掉真实比赛
+            home_match = home_team.lower() in odds_home.lower() or odds_home.lower() in home_team.lower()
+            away_match = away_team.lower() in odds_away.lower() or odds_away.lower() in away_team.lower()
 
+            if home_match and away_match:
                 home_odds, draw_odds, away_odds = [], [], []
 
                 for bookmaker in match.get("bookmakers", []):
                     for market in bookmaker.get("markets", []):
                         if market["key"] == "h2h":
                             for outcome in market["outcomes"]:
-                                if outcome["name"] == match["home_team"]:
+                                out_name = outcome["name"].lower()
+                                if odds_home.lower() in out_name or out_name in odds_home.lower():
                                     home_odds.append(outcome["price"])
-                                elif outcome["name"] == match["away_team"]:
+                                elif odds_away.lower() in out_name or out_name in odds_away.lower():
                                     away_odds.append(outcome["price"])
                                 else:
                                     draw_odds.append(outcome["price"])
