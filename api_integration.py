@@ -200,7 +200,7 @@ def normalize_team_name(name: str) -> str:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 LEAGUES = {
-    "La Liga": {"api_football_id": 140, "football_data_code": "PD"},
+    "Spain La Liga": {"api_football_id": 140, "football_data_code": "PD"},
     "England Premier League": {"api_football_id": 39, "football_data_code": "PL"},
     "Serie A": {"api_football_id": 135, "football_data_code": "SA"},
     "Bundesliga": {"api_football_id": 78, "football_data_code": "BL1"},
@@ -886,7 +886,7 @@ class OddsAPI:
     BASE_URL = "https://api.the-odds-api.com/v4"
 
     SPORT_KEYS = {
-        "La Liga": "soccer_spain_la_liga",
+        "Spain La Liga": "soccer_spain_la_liga",
         "England Premier League": "soccer_epl",
         "Serie A": "soccer_italy_serie_a",
         "Bundesliga": "soccer_germany_bundesliga",
