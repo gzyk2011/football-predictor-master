@@ -210,7 +210,7 @@ LEAGUES = {
     "Europa League": {"api_football_id": 3, "football_data_code": "EL"},
     "Eredivisie": {"api_football_id": 88, "football_data_code": "DED"},
     "Portugal Primeira Liga": {"api_football_id": 94, "football_data_code": "PPL"},
-    "Super Lig": {"api_football_id": 203, "football_data_code": "TSL"},
+    "Turkey Süper Lig": {"api_football_id": 203, "football_data_code": "TSL"},
     "Scottish Premiership": {"api_football_id": 179, "football_data_code": "SPL"},
     "Championship": {"api_football_id": 40, "football_data_code": "ELC"},
     "MLS": {"api_football_id": 253, "football_data_code": "MLS"},
