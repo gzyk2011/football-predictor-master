@@ -201,7 +201,7 @@ def normalize_team_name(name: str) -> str:
 
 LEAGUES = {
     "La Liga": {"api_football_id": 140, "football_data_code": "PD"},
-    "Portugal Premier League": {"api_football_id": 39, "football_data_code": "PL"},
+    "England Premier League": {"api_football_id": 39, "football_data_code": "PL"},
     "Serie A": {"api_football_id": 135, "football_data_code": "SA"},
     "Bundesliga": {"api_football_id": 78, "football_data_code": "BL1"},
     "2. Bundesliga": {"api_football_id": 79, "football_data_code": "None"},
@@ -209,7 +209,7 @@ LEAGUES = {
     "Champions League": {"api_football_id": 2, "football_data_code": "CL"},
     "Europa League": {"api_football_id": 3, "football_data_code": "EL"},
     "Eredivisie": {"api_football_id": 88, "football_data_code": "DED"},
-    "Primeira Liga": {"api_football_id": 94, "football_data_code": "PPL"},
+    "Portugal Primeira Liga": {"api_football_id": 94, "football_data_code": "PPL"},
     "Super Lig": {"api_football_id": 203, "football_data_code": "TSL"},
     "Scottish Premiership": {"api_football_id": 179, "football_data_code": "SPL"},
     "Championship": {"api_football_id": 40, "football_data_code": "ELC"},
@@ -887,7 +887,7 @@ class OddsAPI:
 
     SPORT_KEYS = {
         "La Liga": "soccer_spain_la_liga",
-        "Portugal Premier League": "soccer_epl",
+        "England Premier League": "soccer_epl",
         "Serie A": "soccer_italy_serie_a",
         "Bundesliga": "soccer_germany_bundesliga",
         "2. Bundesliga": "soccer_germany_bundesliga2",
@@ -895,7 +895,7 @@ class OddsAPI:
         "Champions League": "soccer_uefa_champs_league",
         "Europa League": "soccer_uefa_europa_league",
         "Eredivisie": "soccer_netherlands_eredivisie",
-        "Primeira Liga": "soccer_portugal_primeira_liga",
+        "Portugal Primeira Liga": "soccer_portugal_primeira_liga",
         "Championship": "soccer_efl_champ",
         "Spain Segunda División": "soccer_spain_segunda_division",
         "England Championship": "soccer_efl_champ",
