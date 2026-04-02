@@ -7,11 +7,6 @@
 
 This module provides integration with various football data APIs.
 Configure your API keys below or set them as environment variables.
-
-Supported APIs:
-- API-Football (https://www.api-football.com/)
-- Football-Data.org (https://www.football-data.org/)
-- Odds API (https://the-odds-api.com/)
 """
 
 import requests
@@ -29,7 +24,6 @@ import os
 # API CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Load .env file if present (for local development)
 _env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
 if os.path.exists(_env_path):
     with open(_env_path) as _f:
@@ -43,15 +37,13 @@ API_FOOTBALL_KEY = os.getenv("API_FOOTBALL_KEY", "")
 API_FOOTBALL_HOST = "api-football-v1.p.rapidapi.com"
 
 FOOTBALL_DATA_KEY = os.getenv("FOOTBALL_DATA_KEY", "")
-
 ODDS_API_KEY = os.getenv("ODDS_API_KEY", "")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TEAM NAME NORMALIZATION (API names → English common names)
+# TEAM NAME NORMALIZATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
 TEAM_NAME_MAP = {
-    # Champions League / European clubs
     "FC Barcelone": "Barcelona",
     "FC Barcelona": "Barcelona",
     "Atalanta Bergame": "Atalanta",
@@ -118,7 +110,6 @@ TEAM_NAME_MAP = {
     "ŠK Slovan Bratislava": "Slovan Bratislava",
     "FK Shakhtar Donetsk": "Shakhtar Donetsk",
     "Shakhtar Donetsk": "Shakhtar Donetsk",
-    # Premier League
     "Wolverhampton Wanderers FC": "Wolves",
     "Wolverhampton Wanderers": "Wolves",
     "West Ham United FC": "West Ham",
@@ -133,7 +124,6 @@ TEAM_NAME_MAP = {
     "Fulham FC": "Fulham",
     "Southampton FC": "Southampton",
     "Brentford FC": "Brentford",
-    # La Liga
     "Real Betis Balompié": "Real Betis",
     "Real Betis Balompie": "Real Betis",
     "Rayo Vallecano de Madrid": "Rayo Vallecano",
@@ -155,7 +145,6 @@ TEAM_NAME_MAP = {
     "Real Valladolid CF": "Real Valladolid",
     "CD Leganés": "Leganes",
     "CD Leganes": "Leganes",
-    # Bundesliga
     "TSG 1899 Hoffenheim": "Hoffenheim",
     "1. FC Heidenheim 1846": "Heidenheim",
     "1. FC Union Berlin": "Union Berlin",
@@ -169,7 +158,6 @@ TEAM_NAME_MAP = {
     "FC St. Pauli 1910": "St. Pauli",
     "Holstein Kiel": "Holstein Kiel",
     "Borussia Mönchengladbach": "Monchengladbach",
-    # Serie A
     "SSC Napoli": "Napoli",
     "SS Lazio": "Lazio",
     "AS Roma": "Roma",
@@ -186,7 +174,6 @@ TEAM_NAME_MAP = {
     "Venezia FC": "Venezia",
     "Como 1907": "Como",
     "AC Monza": "Monza",
-    # Ligue 1
     "Olympique de Marseille": "Marseille",
     "Olympique Lyonnais": "Lyon",
     "OGC Nice": "Nice",
@@ -205,11 +192,8 @@ TEAM_NAME_MAP = {
     "AS Saint-Étienne": "Saint-Etienne",
 }
 
-
 def normalize_team_name(name: str) -> str:
-    """Normalize a team name to its common English form."""
     return TEAM_NAME_MAP.get(name, name)
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LEAGUE CONFIGURATIONS
@@ -248,11 +232,8 @@ def get_available_leagues() -> List[str]:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class ResponseCache:
-    """Disk-backed response cache to stay within API free-tier limits."""
-
     CACHE_FILE = Path.home() / ".football_predictor_cache"
 
-    # Default TTLs in seconds
     TTL_STANDINGS = 3600      # 1 hour
     TTL_FIXTURES = 1800       # 30 min
     TTL_ODDS = 900            # 15 min
@@ -263,12 +244,9 @@ class ResponseCache:
         self._store: Dict[str, Tuple[float, object]] = {}
         self._load_from_disk()
 
-    # ── public api ──────────────────────────────────────────────────────────
-
     def get(self, key: str, ttl: int) -> Optional[object]:
         entry = self._store.get(key)
-        if entry is None:
-            return None
+        if entry is None: return None
         ts, data = entry
         if time.time() - ts > ttl:
             del self._store[key]
@@ -289,14 +267,11 @@ class ResponseCache:
         raw = f"{endpoint}|{json.dumps(params or {}, sort_keys=True)}"
         return hashlib.md5(raw.encode()).hexdigest()
 
-    # ── persistence ─────────────────────────────────────────────────────────
-
     def _save_to_disk(self):
         try:
             with open(self.CACHE_FILE, "wb") as f:
                 pickle.dump(self._store, f)
-        except Exception:
-            pass
+        except Exception: pass
 
     def _load_from_disk(self):
         try:
@@ -306,7 +281,6 @@ class ResponseCache:
         except Exception:
             self._store = {}
 
-# Shared cache instance
 _cache = ResponseCache()
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -315,7 +289,6 @@ _cache = ResponseCache()
 
 @dataclass
 class TeamData:
-    """Real team data fetched from API"""
     id: int
     name: str
     logo: str
@@ -335,14 +308,12 @@ class TeamData:
     away_losses: int
     away_goals_for: int
     away_goals_against: int
-    form: str  # e.g., "WWDLW"
+    form: str
     clean_sheets: int
     failed_to_score: int
 
 @dataclass
 class CumulativeTeam:
-    """Season-to-date totals for walk-forward backtesting (one team)."""
-
     name: str
     team_id: int = 0
     hw: int = 0
@@ -374,12 +345,9 @@ class CumulativeTeam:
         else:
             self.hd += 1
             self.form_events.append("D")
-        if away_goals == 0:
-            self.clean_sheets += 1
-        if home_goals == 0:
-            self.failed_to_score += 1
-        if len(self.form_events) > 12:
-            self.form_events = self.form_events[-10:]
+        if away_goals == 0: self.clean_sheets += 1
+        if home_goals == 0: self.failed_to_score += 1
+        if len(self.form_events) > 12: self.form_events = self.form_events[-10:]
 
     def add_away_result(self, home_goals: int, away_goals: int) -> None:
         self.agf += away_goals
@@ -393,49 +361,31 @@ class CumulativeTeam:
         else:
             self.ad += 1
             self.form_events.append("D")
-        if home_goals == 0:
-            self.clean_sheets += 1
-        if away_goals == 0:
-            self.failed_to_score += 1
-        if len(self.form_events) > 12:
-            self.form_events = self.form_events[-10:]
+        if home_goals == 0: self.clean_sheets += 1
+        if away_goals == 0: self.failed_to_score += 1
+        if len(self.form_events) > 12: self.form_events = self.form_events[-10:]
 
     def to_team_data(self) -> "TeamData":
         gp = max(self.games_played(), 1)
         form = "".join(self.form_events[-5:])
         return TeamData(
-            id=self.team_id,
-            name=self.name,
-            logo="",
-            games_played=gp,
-            wins=self.hw + self.aw,
-            draws=self.hd + self.ad,
-            losses=self.hl + self.al,
-            goals_for=self.hgf + self.agf,
-            goals_against=self.hga + self.aga,
-            home_wins=self.hw,
-            home_draws=self.hd,
-            home_losses=self.hl,
-            home_goals_for=self.hgf,
-            home_goals_against=self.hga,
-            away_wins=self.aw,
-            away_draws=self.ad,
-            away_losses=self.al,
-            away_goals_for=self.agf,
-            away_goals_against=self.aga,
-            form=form,
-            clean_sheets=self.clean_sheets,
-            failed_to_score=self.failed_to_score,
+            id=self.team_id, name=self.name, logo="", games_played=gp,
+            wins=self.hw + self.aw, draws=self.hd + self.ad, losses=self.hl + self.al,
+            goals_for=self.hgf + self.agf, goals_against=self.hga + self.aga,
+            home_wins=self.hw, home_draws=self.hd, home_losses=self.hl,
+            home_goals_for=self.hgf, home_goals_against=self.hga,
+            away_wins=self.aw, away_draws=self.ad, away_losses=self.al,
+            away_goals_for=self.agf, away_goals_against=self.aga,
+            form=form, clean_sheets=self.clean_sheets, failed_to_score=self.failed_to_score,
         )
 
 @dataclass
 class TeamExtendedStats:
-    """Real team-level statistics from API (corners, cards, shots, etc.)."""
     team_id: int
     team_name: str
-    corners_for_avg: float = 0.0     # avg corners won per match
-    corners_against_avg: float = 0.0 # avg corners conceded per match
-    yellow_cards_avg: float = 0.0    # avg yellows per match
+    corners_for_avg: float = 0.0
+    corners_against_avg: float = 0.0
+    yellow_cards_avg: float = 0.0
     red_cards_avg: float = 0.0
     shots_on_target_avg: float = 0.0
     shots_total_avg: float = 0.0
@@ -446,7 +396,6 @@ class TeamExtendedStats:
 
 @dataclass
 class FixtureData:
-    """Match fixture data"""
     id: int
     home_team: str
     away_team: str
@@ -461,7 +410,6 @@ class FixtureData:
 
 @dataclass
 class MatchResult:
-    """Historical match result for backtesting / model fitting."""
     date: str
     home_team: str
     away_team: str
@@ -473,23 +421,20 @@ class MatchResult:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class APIFootball:
-    """API-Football integration class"""
-
     BASE_URL = "https://v3.football.api-sports.io"
 
     def __init__(self, api_key: str = API_FOOTBALL_KEY):
         self.api_key = api_key
-        self.headers = {
-            "x-apisports-key": api_key,
-        }
+        self.headers = {"x-apisports-key": api_key}
+        self._active_seasons = {} # 记录每个联赛当前正确的年份
 
     def is_available(self) -> bool:
         return self.api_key not in ("YOUR_API_KEY_HERE", "", None)
 
     def _make_request(self, endpoint: str, params: dict = None, cache_ttl: int = 0) -> dict:
-        """Make API request with optional caching."""
         if cache_ttl > 0:
-            key = _cache.make_key(f"apifb/{endpoint}", params)
+            # 【修复点】：使用 apifb_v3 作为前缀，彻底粉碎旧版本的错误缓存
+            key = _cache.make_key(f"apifb_v3/{endpoint}", params)
             cached = _cache.get(key, cache_ttl)
             if cached is not None:
                 return cached
@@ -506,9 +451,25 @@ class APIFootball:
             print(f"  [API-Football error] {e}")
             return {}
 
-    # ── standings ───────────────────────────────────────────────────────────
+    def get_active_season(self, league_id: int) -> int:
+        """【新增核心组件】：AI 赛季嗅探器，自动判断跨年联赛正确的年份，防止主引擎失效"""
+        if league_id in self._active_seasons:
+            return self._active_seasons[league_id]
 
-    def get_standings(self, league_id: int, season: int = 2025) -> List[TeamData]:
+        current_year = datetime.now().year
+        # 尝试查询当前年份和上一年份（比如现在是 2026，查 2026、2025、2024）
+        for season in [current_year, current_year - 1, current_year - 2]:
+            data = self._make_request("standings", {"league": league_id, "season": season}, cache_ttl=ResponseCache.TTL_STANDINGS)
+            if data.get("response"):
+                self._active_seasons[league_id] = season
+                print(f"  [Season Detected] League {league_id} is currently in season {season}")
+                return season
+        return current_year
+
+    def get_standings(self, league_id: int, season: int = None) -> List[TeamData]:
+        if season is None:
+            season = self.get_active_season(league_id)
+
         data = self._make_request(
             "standings",
             {"league": league_id, "season": season},
@@ -516,40 +477,49 @@ class APIFootball:
         )
 
         teams = []
-        if data.get("response"):
-            standings = data["response"][0]["league"]["standings"][0]
-            for td in standings:
-                team = td["team"]
-                a = td["all"]
-                h = td["home"]
-                w = td["away"]
-                teams.append(TeamData(
-                    id=team["id"],
-                    name=normalize_team_name(team["name"]),
-                    logo=team.get("logo", ""),
-                    games_played=a["played"],
-                    wins=a["win"],
-                    draws=a["draw"],
-                    losses=a["lose"],
-                    goals_for=a["goals"]["for"],
-                    goals_against=a["goals"]["against"],
-                    home_wins=h["win"],
-                    home_draws=h["draw"],
-                    home_losses=h["lose"],
-                    home_goals_for=h["goals"]["for"],
-                    home_goals_against=h["goals"]["against"],
-                    away_wins=w["win"],
-                    away_draws=w["draw"],
-                    away_losses=w["lose"],
-                    away_goals_for=w["goals"]["for"],
-                    away_goals_against=w["goals"]["against"],
-                    form=td.get("form", ""),
-                    clean_sheets=0,
-                    failed_to_score=0,
-                ))
-        return teams
+        seen_team_ids = set() # 用来防重
 
-    # ── fixtures ────────────────────────────────────────────────────────────
+        if data.get("response"):
+            # 【修复点】：遍历全部的分组，解决阿根廷、美职联球队减半的问题
+            all_groups = data["response"][0]["league"]["standings"]
+            
+            for group_standings in all_groups:
+                for td in group_standings:
+                    team = td["team"]
+                    team_id = team["id"]
+                    
+                    if team_id in seen_team_ids:
+                        continue
+                    seen_team_ids.add(team_id)
+
+                    a = td["all"]
+                    h = td["home"]
+                    w = td["away"]
+                    teams.append(TeamData(
+                        id=team["id"],
+                        name=normalize_team_name(team["name"]),
+                        logo=team.get("logo", ""),
+                        games_played=a["played"],
+                        wins=a["win"],
+                        draws=a["draw"],
+                        losses=a["lose"],
+                        goals_for=a["goals"]["for"],
+                        goals_against=a["goals"]["against"],
+                        home_wins=h["win"],
+                        home_draws=h["draw"],
+                        home_losses=h["lose"],
+                        home_goals_for=h["goals"]["for"],
+                        home_goals_against=h["goals"]["against"],
+                        away_wins=w["win"],
+                        away_draws=w["draw"],
+                        away_losses=w["lose"],
+                        away_goals_for=w["goals"]["for"],
+                        away_goals_against=w["goals"]["against"],
+                        form=td.get("form", ""),
+                        clean_sheets=0,
+                        failed_to_score=0,
+                    ))
+        return teams
 
     def get_fixtures(self, league_id: int, next_n: int = 10) -> List[FixtureData]:
         data = self._make_request(
@@ -572,8 +542,6 @@ class APIFootball:
                     status=fix["fixture"]["status"]["short"],
                 ))
         return fixtures
-
-    # ── head-to-head (bug fixed: compare IDs not names) ────────────────────
 
     def get_head_to_head(self, team1_id: int, team2_id: int, last_n: int = 10) -> dict:
         data = self._make_request(
@@ -604,7 +572,6 @@ class APIFootball:
 
             h2h["total_goals"] += home_goals + away_goals
 
-            # Track goals per side (relative to team1 / team2)
             if home_id == team1_id:
                 t1_goals, t2_goals = home_goals, away_goals
             else:
@@ -622,9 +589,10 @@ class APIFootball:
 
         return h2h
 
-    # ── historical results ─────────────────────────────────────────────────
-
-    def get_past_results(self, league_id: int, season: int = 2025) -> List[MatchResult]:
+    def get_past_results(self, league_id: int, season: int = None) -> List[MatchResult]:
+        if season is None:
+            season = self.get_active_season(league_id)
+            
         data = self._make_request(
             "fixtures",
             {"league": league_id, "season": season, "status": "FT"},
@@ -644,14 +612,14 @@ class APIFootball:
         results.sort(key=lambda r: r.date)
         return results
 
-    # ── team detailed statistics ────────────────────────────────────────────
-
-    def get_team_statistics(self, team_id: int, league_id: int, season: int = 2025) -> Optional[TeamExtendedStats]:
-        """Fetch detailed team statistics (corners, cards, shots, etc.)."""
+    def get_team_statistics(self, team_id: int, league_id: int, season: int = None) -> Optional[TeamExtendedStats]:
+        if season is None:
+            season = self.get_active_season(league_id)
+            
         data = self._make_request(
             "teams/statistics",
             {"team": team_id, "league": league_id, "season": season},
-            cache_ttl=ResponseCache.TTL_STANDINGS,  # 1 hour cache
+            cache_ttl=ResponseCache.TTL_STANDINGS, 
         )
         if not data.get("response"):
             return None
@@ -663,8 +631,6 @@ class APIFootball:
             return None
 
         team_name = normalize_team_name(r.get("team", {}).get("name", "Unknown"))
-
-        # Cards: { "0-15": {"yellow": {"total": N}, "red": {"total": N}}, ... }
         cards = r.get("cards", {})
         total_yellows = 0
         total_reds = 0
@@ -684,7 +650,6 @@ class APIFootball:
         )
 
     def get_fixture_statistics(self, fixture_id: int) -> dict:
-        """Get per-match statistics (corners, shots, etc.) for a played fixture."""
         data = self._make_request(
             "fixtures/statistics",
             {"fixture": fixture_id},
@@ -692,7 +657,6 @@ class APIFootball:
         )
         if not data.get("response"):
             return {}
-        # Returns list of team stats [{team: {...}, statistics: [...]}, ...]
         result = {}
         for team_block in data["response"]:
             team_name = normalize_team_name(team_block.get("team", {}).get("name", ""))
@@ -703,10 +667,10 @@ class APIFootball:
         return result
 
     def get_team_extended_from_fixtures(self, team_id: int, team_name: str,
-                                         league_id: int, season: int = 2025) -> Optional[TeamExtendedStats]:
-        """Build extended stats by aggregating past fixture statistics.
-        Uses cached past results to avoid extra API calls."""
-        # Get finished fixtures for this league/season
+                                         league_id: int, season: int = None) -> Optional[TeamExtendedStats]:
+        if season is None:
+            season = self.get_active_season(league_id)
+            
         data = self._make_request(
             "fixtures",
             {"league": league_id, "season": season, "status": "FT", "last": 40},
@@ -715,7 +679,6 @@ class APIFootball:
         if not data.get("response"):
             return None
 
-        # Filter to fixtures involving this team
         team_fixtures = []
         for fix in data["response"]:
             home_id = fix["teams"]["home"]["id"]
@@ -726,41 +689,28 @@ class APIFootball:
         if not team_fixtures:
             return None
 
-        # Aggregate stats from fixture statistics (limit to save API calls)
-        corners_list = []
-        yellows_list = []
-        shots_ot_list = []
-        shots_total_list = []
-        fouls_list = []
-        possession_list = []
+        corners_list, yellows_list, shots_ot_list = [], [], []
+        shots_total_list, fouls_list, possession_list = [], [], []
 
-        for fid in team_fixtures[:10]:  # Last 10 matches max
+        for fid in team_fixtures[:10]:  
             stats = self.get_fixture_statistics(fid)
-            # Find our team's stats
             for tname, tstat in stats.items():
                 if tname.lower() == team_name.lower() or team_name.lower() in tname.lower():
                     c = tstat.get("Corner Kicks")
-                    if c is not None:
-                        corners_list.append(int(c) if c else 0)
+                    if c is not None: corners_list.append(int(c))
                     y = tstat.get("Yellow Cards")
-                    if y is not None:
-                        yellows_list.append(int(y) if y else 0)
+                    if y is not None: yellows_list.append(int(y))
                     sot = tstat.get("Shots on Goal")
-                    if sot is not None:
-                        shots_ot_list.append(int(sot) if sot else 0)
+                    if sot is not None: shots_ot_list.append(int(sot))
                     st = tstat.get("Total Shots")
-                    if st is not None:
-                        shots_total_list.append(int(st) if st else 0)
+                    if st is not None: shots_total_list.append(int(st))
                     f = tstat.get("Fouls")
-                    if f is not None:
-                        fouls_list.append(int(f) if f else 0)
+                    if f is not None: fouls_list.append(int(f))
                     p = tstat.get("Ball Possession")
                     if p is not None:
                         pval = str(p).replace("%", "")
-                        try:
-                            possession_list.append(float(pval))
-                        except ValueError:
-                            pass
+                        try: possession_list.append(float(pval))
+                        except ValueError: pass
                     break
 
         gp = max(len(corners_list), len(yellows_list), 1)
@@ -777,11 +727,11 @@ class APIFootball:
             games_played=gp,
         )
 
-    # ── 实时赔率 (升级修复版) ─────────────────────────────────────────────────────────
+    # ── 实时赔率 (终极修复版：精准ID匹配，不限赛季，不限庄家) ───────────────────────
 
-    def get_match_odds(self, league_id: int, home_name: str, away_name: str, season: int = 2025) -> Tuple[float, float, float]:
-        """获取赛事的实时赔率 (胜平负)"""
-        # 1. 先从未来赛程中找到这场比赛的专属 fixture_id (去掉 season 限制，直接查询该联赛未来的50场比赛)
+    def get_match_odds(self, league_id: int, home_id: int, away_id: int) -> Tuple[float, float, float]:
+        """获取赛事的实时赔率 (胜平负)，使用真实 ID 精确匹配"""
+        # 1. 扫描未来50场，使用官方 ID 查找
         fixtures_data = self._make_request(
             "fixtures",
             {"league": league_id, "next": 50},
@@ -791,27 +741,25 @@ class APIFootball:
         fixture_id = None
         if fixtures_data.get("response"):
             for fix in fixtures_data["response"]:
-                h = fix["teams"]["home"]["name"].lower()
-                a = fix["teams"]["away"]["name"].lower()
-                if home_name.lower() in h and away_name.lower() in a:
+                if fix["teams"]["home"]["id"] == home_id and fix["teams"]["away"]["id"] == away_id:
                     fixture_id = fix["fixture"]["id"]
                     break
 
         if not fixture_id:
             return (0.0, 0.0, 0.0)
 
-        # 2. 用 fixture_id 请求赔率接口 (去掉只查博彩公司 Bet365 的限制，允许抓取全部庄家)
+        # 2. 拉取所有庄家赔率
         odds_data = self._make_request(
             "odds",
             {"fixture": fixture_id},
-            cache_ttl=ResponseCache.TTL_ODDS, # 缓存15分钟
+            cache_ttl=ResponseCache.TTL_ODDS,
         )
 
         if not odds_data.get("response"):
             return (0.0, 0.0, 0.0)
 
         try:
-            # 3. 智能遍历所有开盘的博彩公司，只要找到一家有 "Match Winner" (胜平负) 盘口的就直接用
+            # 3. 智能抓取第一家提供胜平负的庄家
             bookmakers = odds_data["response"][0].get("bookmakers", [])
             for bookmaker in bookmakers:
                 bets = bookmaker.get("bets", [])
@@ -834,10 +782,8 @@ class APIFootball:
 
         return (0.0, 0.0, 0.0)
 
-    # ── team id map ─────────────────────────────────────────────────────────
-
-    def get_team_id_map(self, league_id: int, season: int = 2025) -> Dict[str, int]:
-        teams = self.get_standings(league_id, season)
+    def get_team_id_map(self, league_id: int) -> Dict[str, int]:
+        teams = self.get_standings(league_id)
         return {t.name: t.id for t in teams}
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -890,7 +836,6 @@ class FootballDataOrg:
         return []
 
     def get_standings_as_team_data(self, competition: str = "PD") -> List[TeamData]:
-        """Get standings and convert to TeamData objects for the predictor."""
         raw = self.get_standings(competition)
         teams = []
         for entry in raw:
@@ -902,10 +847,8 @@ class FootballDataOrg:
             gf = entry.get("goalsFor", 0)
             ga = entry.get("goalsAgainst", 0)
             form_str = entry.get("form", "") or ""
-            # football-data.org form uses commas: "W,W,D,L,W"
             form_str = form_str.replace(",", "")
 
-            # This API doesn't split home/away, so estimate 50/50
             hw = round(w * 0.6)
             hd = round(d * 0.5)
             hl = l - round(l * 0.5)
@@ -1021,37 +964,28 @@ class OddsAPI:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class DataProcessor:
-    """Process API data into format suitable for prediction engine."""
-
     @staticmethod
     def calculate_league_avg_goals(results: List[MatchResult]) -> float:
-        if not results:
-            return 2.65
+        if not results: return 2.65
         total = sum(r.home_goals + r.away_goals for r in results)
         return total / len(results)
 
     @staticmethod
     def calculate_form_with_decay(form_string: str, decay_factor: float = 0.85) -> float:
-        """Exponentially weighted form rating (most recent match weighted highest)."""
-        if not form_string:
-            return 0.5
-        recent = form_string[-5:]  # last 5 matches
+        if not form_string: return 0.5
+        recent = form_string[-5:]
         points = 0.0
         weight_sum = 0.0
         for i, result in enumerate(reversed(recent)):
-            w = decay_factor ** i  # i=0 is most recent → weight=1.0
-            if result == "W":
-                points += 3 * w
-            elif result == "D":
-                points += 1 * w
-            weight_sum += 3 * w  # max possible per match
+            w = decay_factor ** i
+            if result == "W": points += 3 * w
+            elif result == "D": points += 1 * w
+            weight_sum += 3 * w
         return points / weight_sum if weight_sum > 0 else 0.5
 
     @staticmethod
     def odds_to_implied_probabilities(home_odds: float, draw_odds: float, away_odds: float) -> Tuple[float, float, float]:
-        """Convert decimal odds to implied probs, removing the overround."""
-        if home_odds <= 0 or draw_odds <= 0 or away_odds <= 0:
-            return (0.0, 0.0, 0.0)
+        if home_odds <= 0 or draw_odds <= 0 or away_odds <= 0: return (0.0, 0.0, 0.0)
         raw_h = 1.0 / home_odds
         raw_d = 1.0 / draw_odds
         raw_a = 1.0 / away_odds
@@ -1059,17 +993,13 @@ class DataProcessor:
         return (raw_h / total, raw_d / total, raw_a / total)
 
     @staticmethod
-    def _shrink_to_league(raw: float, baseline: float, sample_games: int,
-                          min_games: int = 10) -> float:
-        """Pull noisy early-season rates toward league average (1.0 for strengths)."""
-        if sample_games <= 0:
-            return baseline
+    def _shrink_to_league(raw: float, baseline: float, sample_games: int, min_games: int = 10) -> float:
+        if sample_games <= 0: return baseline
         w = min(1.0, sample_games / max(min_games, 1))
         return w * raw + (1.0 - w) * baseline
 
     @staticmethod
     def build_team_stats(team_data: TeamData, league_avg_goals: float, form_decay: float = 0.85) -> dict:
-        """Build prediction-engine stats from API TeamData (overall + home/away splits)."""
         gp = team_data.games_played or 1
         hg = team_data.home_wins + team_data.home_draws + team_data.home_losses
         ag = team_data.away_wins + team_data.away_draws + team_data.away_losses
@@ -1083,7 +1013,6 @@ class DataProcessor:
         attack_strength = avg_scored / half_avg
         defense_strength = avg_conceded / half_avg
 
-        # Home / away goal rates vs league half-average (for Dixon–Coles matchups)
         raw_ha = (team_data.home_goals_for / hg) / half_avg
         raw_hd = (team_data.home_goals_against / hg) / half_avg
         raw_aa = (team_data.away_goals_for / ag) / half_avg
@@ -1099,10 +1028,7 @@ class DataProcessor:
         home_advantage = min(max(home_ppg / away_ppg if away_ppg > 0 else 1.15, 1.0), 1.3)
 
         form_rating = DataProcessor.calculate_form_with_decay(team_data.form, form_decay)
-
         clean_sheet_pct = team_data.clean_sheets / gp if gp > 0 else 0.25
-
-        # BTTS estimation: proportion of games where both teams scored
         btts_pct = 1.0 - clean_sheet_pct - (team_data.failed_to_score / gp if gp > 0 else 0.15)
         btts_pct = min(max(btts_pct, 0.3), 0.85)
 
@@ -1126,12 +1052,7 @@ class DataProcessor:
 
     @staticmethod
     def build_team_stats_from_cumulative(c: CumulativeTeam, league_avg_goals: float, form_decay: float = 0.85) -> dict:
-        """Same pipeline as build_team_stats for walk-forward cumulative totals."""
         return DataProcessor.build_team_stats(c.to_team_data(), league_avg_goals, form_decay)
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# UTILITY
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def check_api_availability() -> Dict[str, bool]:
     return {
@@ -1143,7 +1064,6 @@ def check_api_availability() -> Dict[str, bool]:
 def clear_cache():
     _cache.clear()
     print("Cache cleared.")
-
 
 if __name__ == "__main__":
     avail = check_api_availability()
