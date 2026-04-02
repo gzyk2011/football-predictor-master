@@ -179,12 +179,18 @@ FALLBACK_TEAMS = {
 # LIVE DATA PROVIDER
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class LiveDataProvider:
+  class LiveDataProvider:
     """Fetches real data from APIs and converts to TeamStats."""
 
-    def __init__(self, league_name: str = "La Liga"):
+    def __init__(self, league_name: str = "Spain La Liga"):
         self.league_name = league_name
-        self.league_cfg = LEAGUES.get(league_name, LEAGUES["La Liga"])
+        
+        # 安全保底机制：如果名字匹配不上，直接随便拿字典里的第一个联赛垫底，彻底杜绝 KeyError 崩溃！
+        fallback_cfg = LEAGUES.get("Spain La Liga")
+        if not fallback_cfg:
+            fallback_cfg = list(LEAGUES.values())[0]
+            
+        self.league_cfg = LEAGUES.get(league_name, fallback_cfg)
         self.league_id = self.league_cfg["api_football_id"]
         self.fdo_code = self.league_cfg.get("football_data_code")
 
