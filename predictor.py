@@ -178,13 +178,13 @@ FALLBACK_TEAMS = {
 # ═══════════════════════════════════════════════════════════════════════════════
 # LIVE DATA PROVIDER
 # ═══════════════════════════════════════════════════════════════════════════════
+
 class LiveDataProvider:
     """Fetches real data from APIs and converts to TeamStats."""
 
     def __init__(self, league_name: str = "Spain La Liga"):
         self.league_name = league_name
         
-        # 安全保底机制：如果名字匹配不上，直接随便拿字典里的第一个联赛垫底，彻底杜绝 KeyError 崩溃！
         fallback_cfg = LEAGUES.get("Spain La Liga")
         if not fallback_cfg:
             fallback_cfg = list(LEAGUES.values())[0]
@@ -345,17 +345,14 @@ class LiveDataProvider:
         return self.api.get_head_to_head(id1, id2)
 
     def get_match_odds(self, home: str, away: str) -> Tuple[float, float, float]:
-        """【修复点】：彻底解决因跨年赛季导致的 ID 错位和匹配失败，使用真实的球队 ID 拉取赔率"""
         if self.api.is_available():
             home_id = self.team_id_map.get(home)
             away_id = self.team_id_map.get(away)
-            # 必须能找到官方 ID 才去查，避免因为 FDO 的假 ID 报错
             if home_id and away_id:
                 api_fb_odds = self.api.get_match_odds(self.league_id, home_id, away_id)
                 if sum(api_fb_odds) > 0.01:
                     return api_fb_odds
 
-        # 备用方案：OddsAPI
         if not self.odds.is_available():
             return (0, 0, 0)
         
@@ -874,7 +871,7 @@ def run_prediction(provider: LiveDataProvider, engine: PredictionEngine, home: T
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--league", type=str, default="La Liga")
+    parser.add_argument("--league", type=str, default="Spain La Liga")
     args = parser.parse_args()
     provider, engine = make_provider_and_engine(args.league)
     print("Ready.")
