@@ -234,6 +234,7 @@ LEAGUES = {
     "Argentine Primera": {"api_football_id": 128, "football_data_code": None},
     "Belgian Pro League": {"api_football_id": 144, "football_data_code": None},
     "Swiss Super League": {"api_football_id": 207, "football_data_code": None},
+    "Australia A-League": {"api_football_id": 188, "football_data_code": None},
     "Austrian Bundesliga": {"api_football_id": 218, "football_data_code": None},
     "Greek Super League": {"api_football_id": 197, "football_data_code": None},
 }
@@ -892,6 +893,7 @@ class OddsAPI:
         "Eredivisie": "soccer_netherlands_eredivisie",
         "Primeira Liga": "soccer_portugal_primeira_liga",
         "Championship": "soccer_efl_champ",
+        "Australia A-League": "soccer_australia_aleague",
         "MLS": "soccer_usa_mls",
         "Brasileirao": "soccer_brazil_campeonato",
     }
