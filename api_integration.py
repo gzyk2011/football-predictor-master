@@ -216,6 +216,7 @@ LEAGUES = {
     "Championship": {"api_football_id": 40, "football_data_code": "ELC"},
     "MLS": {"api_football_id": 253, "football_data_code": "MLS"},
     "Liga MX": {"api_football_id": 262, "football_data_code": None},
+    "Indonesia Liga 1 ": {"api_football_id": 274, "football_data_code": None},
     "Brasileirao": {"api_football_id": 71, "football_data_code": "BSA"},
     "Argentine Primera": {"api_football_id": 128, "football_data_code": None},
     "Belgian Pro League": {"api_football_id": 144, "football_data_code": None},
