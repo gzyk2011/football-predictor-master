@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                       FOOTBALL DATA API INTEGRATION                          ║
-║              Connect to real football data sources for predictions           ║
+║                               FOOTBALL DATA API INTEGRATION                  ║
+║               Connect to real football data sources for predictions            ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 This module provides integration with various football data APIs.
@@ -775,6 +775,61 @@ class APIFootball:
             possession_avg=round(sum(possession_list) / len(possession_list), 1) if possession_list else 50.0,
             games_played=gp,
         )
+
+    # ── 实时赔率 (新增) ─────────────────────────────────────────────────────────
+
+    def get_match_odds(self, league_id: int, home_name: str, away_name: str, season: int = 2025) -> Tuple[float, float, float]:
+        """获取赛事的实时赔率 (胜平负)"""
+        # 1. 先从未来赛程中找到这场比赛的专属 fixture_id (复用缓存，不浪费额度)
+        fixtures_data = self._make_request(
+            "fixtures",
+            {"league": league_id, "season": season, "next": 50},
+            cache_ttl=ResponseCache.TTL_FIXTURES,
+        )
+
+        fixture_id = None
+        if fixtures_data.get("response"):
+            for fix in fixtures_data["response"]:
+                h = fix["teams"]["home"]["name"].lower()
+                a = fix["teams"]["away"]["name"].lower()
+                if home_name.lower() in h and away_name.lower() in a:
+                    fixture_id = fix["fixture"]["id"]
+                    break
+
+        if not fixture_id:
+            return (0.0, 0.0, 0.0)
+
+        # 2. 用 fixture_id 请求赔率接口 (bookmaker=8 代表业界权威 Bet365)
+        odds_data = self._make_request(
+            "odds",
+            {"fixture": fixture_id, "bookmaker": 8},
+            cache_ttl=ResponseCache.TTL_ODDS, # 缓存15分钟
+        )
+
+        if not odds_data.get("response"):
+            return (0.0, 0.0, 0.0)
+
+        try:
+            # 3. 解析 Match Winner (1X2) 赔率并转换为系统需要的概率
+            bets = odds_data["response"][0]["bookmakers"][0]["bets"]
+            for bet in bets:
+                if bet["id"] == 1 or bet["name"] == "Match Winner":
+                    home_odd = draw_odd = away_odd = 0.0
+                    for val in bet["values"]:
+                        v = str(val["value"]).lower()
+                        if v == "home" or "1" in v:
+                            home_odd = float(val["odd"])
+                        elif v == "draw" or "x" in v:
+                            draw_odd = float(val["odd"])
+                        elif v == "away" or "2" in v:
+                            away_odd = float(val["odd"])
+                    
+                    if home_odd and draw_odd and away_odd:
+                        return DataProcessor.odds_to_implied_probabilities(home_odd, draw_odd, away_odd)
+        except (IndexError, KeyError, ValueError):
+            pass
+
+        return (0.0, 0.0, 0.0)
 
     # ── team id map ─────────────────────────────────────────────────────────
 
