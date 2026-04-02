@@ -220,6 +220,7 @@ LEAGUES = {
     "Spain Segunda División": {"api_football_id": 141, "football_data_code": None},
     "England League One": {"api_football_id": 41, "football_data_code": None},
     "England Championship": {"api_football_id": 40, "football_data_code": None},
+    "Netherlands Eerste Divisie": {"api_football_id": 89, "football_data_code": None},
     "Swiss Super League": {"api_football_id": 207, "football_data_code": None},
     "Australia A-League": {"api_football_id": 188, "football_data_code": None},
     "Austrian Bundesliga": {"api_football_id": 218, "football_data_code": None},
