@@ -214,7 +214,7 @@ LEAGUES = {
     "Turkey Süper Lig": {"api_football_id": 203, "football_data_code": "TSL"},
     "Scottish Premiership": {"api_football_id": 179, "football_data_code": "SPL"},
     "Championship": {"api_football_id": 40, "football_data_code": "ELC"},
-    "MLS": {"api_football_id": 253, "football_data_code": "MLS"},
+    "USA Major League Soccer": {"api_football_id": 253, "football_data_code": "MLS"},
     "Liga MX": {"api_football_id": 262, "football_data_code": None},
     "Indonesia Liga 1 ": {"api_football_id": 274, "football_data_code": None},
     "India Indian Super League ": {"api_football_id": 323, "football_data_code": None},
