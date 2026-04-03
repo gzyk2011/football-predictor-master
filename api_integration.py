@@ -233,6 +233,7 @@ LEAGUES = {
     "Norway Eliteserien": {"api_football_id": 103, "football_data_code": None},
     "Swiss Super League": {"api_football_id": 207, "football_data_code": None},
     "Australia A-League": {"api_football_id": 188, "football_data_code": None},
+    "Serbia Super Liga": {"api_football_id": 286, "football_data_code": None},
     "Japan J1 League": {"api_football_id": 98, "football_data_code": None},
     "South-Korea K League 1": {"api_football_id": 292, "football_data_code": None},
     "Russia Premier League": {"api_football_id": 235, "football_data_code": None},
