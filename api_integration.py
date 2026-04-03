@@ -223,6 +223,7 @@ LEAGUES = {
     "Argentine Primera": {"api_football_id": 128, "football_data_code": None},
     "Belgian Pro League": {"api_football_id": 144, "football_data_code": None},
     "Spain Segunda División": {"api_football_id": 141, "football_data_code": None},
+    "Saudi-Arabia Pro League": {"api_football_id": 307, "football_data_code": None},
     "England League One": {"api_football_id": 41, "football_data_code": None},
     "England League Two": {"api_football_id": 42, "football_data_code": None},
     "Wales  Premier League": {"api_football_id": 110, "football_data_code": None},
