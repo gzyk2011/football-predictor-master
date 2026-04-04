@@ -209,6 +209,7 @@ LEAGUES = {
     "France Ligue 1": {"api_football_id": 61, "football_data_code": "FL1"},
     "France Ligue 2": {"api_football_id": 62, "football_data_code": "FL2"},
     "Champions League": {"api_football_id": 2, "football_data_code": "CL"},
+    "Denmark Superliga": {"api_football_id": 119, "football_data_code": "CL"},
     "Europa League": {"api_football_id": 3, "football_data_code": "EL"},
     "Eredivisie": {"api_football_id": 88, "football_data_code": "DED"},
     "Portugal Primeira Liga": {"api_football_id": 94, "football_data_code": "PPL"},
