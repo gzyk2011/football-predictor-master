@@ -253,7 +253,7 @@ def get_available_leagues() -> List[str]:
 
 class ResponseCache:
     # 【修复点】修改缓存文件名，强制清除你云服务器上的旧错误数据
-    CACHE_FILE = Path.home() / ".football_predictor_cache_v5"
+    CACHE_FILE = Path.home() / ".football_predictor_cache_v6"
 
     TTL_STANDINGS = 3600      # 1 hour
     TTL_FIXTURES = 1800       # 30 min
