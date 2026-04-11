@@ -285,10 +285,10 @@ class LiveDataProvider:
                 if v <= 1e-9: v = getattr(t, fb)
                 setattr(t, attr, v / m)
 
-def load(self) -> bool:
+    def load(self) -> bool:
         if self.api.is_available():
             print(f"  Fetching {self.league_name} data from API-Football...")
-            # 强制只使用 API-Football 获取积分榜
+            # 强制只使用 API-Football 获取积分榜，去除备用逻辑
             teams_raw = self.api.get_standings(self.league_id)
             if teams_raw:
                 self._ingest_teams(teams_raw, "API-Football")
