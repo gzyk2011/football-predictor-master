@@ -285,25 +285,20 @@ class LiveDataProvider:
                 if v <= 1e-9: v = getattr(t, fb)
                 setattr(t, attr, v / m)
 
-    def load(self) -> bool:
+def load(self) -> bool:
         if self.api.is_available():
             print(f"  Fetching {self.league_name} data from API-Football...")
+            # 强制只使用 API-Football 获取积分榜
             teams_raw = self.api.get_standings(self.league_id)
             if teams_raw:
                 self._ingest_teams(teams_raw, "API-Football")
                 self._apply_opponent_strength_adjustment()
                 return True
-            print(f"  API-Football failed, trying Football-Data.org...")
-
-        if self.fdo.is_available() and self.fdo_code:
-            print(f"  Fetching {self.league_name} data from Football-Data.org...")
-            teams_raw = self.fdo.get_standings_as_team_data(self.fdo_code)
-            if teams_raw:
-                self._ingest_teams(teams_raw, "Football-Data.org")
-                self._apply_opponent_strength_adjustment()
-                return True
-            print(f"  Football-Data.org also failed.")
-
+            else:
+                print(f"  [错误] API-Football 未返回 {self.league_name} 的数据。请检查该联赛当前赛季是否已开赛，或尝试清除缓存。")
+        else:
+            print("  [错误] API-Football 密钥未配置或不可用。")
+            
         return False
 
     def get_team(self, name: str) -> Optional[TeamStats]:
