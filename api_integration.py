@@ -238,6 +238,7 @@ LEAGUES = {
     "UEFA Europa Conference League": {"api_football_id": 848, "football_data_code": None},
     "AFC Champions League": {"api_football_id":17, "football_data_code": None},
     "Netherlands Eerste Divisie": {"api_football_id": 89, "football_data_code": None},
+    "Slovenia 1. SNL": {"api_football_id": 373, "football_data_code": None},
     "Norway Eliteserien": {"api_football_id": 103, "football_data_code": None},
     "Swiss Super League": {"api_football_id": 207, "football_data_code": None},
     "Australia A-League": {"api_football_id": 188, "football_data_code": None},
